@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Início — GestãoPro{% endblock %}
+{% block topbar_title %}Início{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Bem-vindo 👋</h1>
+  <p class="page-subtitle">Gerencie seus insumos, vendas e gastos com facilidade</p>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-box-seam-fill"></i></div>
+      <div>
+        <div class="stat-value">{{ insumos_count }}</div>
+        <div class="stat-label">Insumos ativos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-bag-fill"></i></div>
+      <div>
+        <div class="stat-value">{{ vendas_count }}</div>
+        <div class="stat-label">Vendas hoje</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-currency-dollar"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">R$ {{ vendas_hoje|floatformat:2 }}</div>
+        <div class="stat-label">Faturado hoje</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="bi bi-receipt"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">R$ {{ gastos_hoje|floatformat:2 }}</div>
+        <div class="stat-label">Gastos hoje</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Menu principal -->
+<div class="row g-3">
+  <div class="col-12">
+    <h2 class="fw-bold mb-3" style="font-size:16px;color:var(--text-secondary)">ACESSO RÁPIDO</h2>
+  </div>
+
+  <div class="col-12 col-sm-6">
+    <a href="{% url 'insumos' %}" class="text-decoration-none">
+      <div class="card-custom p-3 d-flex align-items-center gap-3" style="transition:transform .2s,box-shadow .2s;cursor:pointer"
+           onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(0,0,0,.12)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div class="stat-icon blue" style="width:54px;height:54px;font-size:24px;flex-shrink:0">
+          <i class="bi bi-box-seam-fill"></i>
+        </div>
+        <div class="flex-1">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--text)">Insumos</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px">Cadastrar e gerenciar estoque</div>
+        </div>
+        <i class="bi bi-chevron-right" style="color:var(--text-tertiary)"></i>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-sm-6">
+    <a href="{% url 'vendas' %}" class="text-decoration-none">
+      <div class="card-custom p-3 d-flex align-items-center gap-3" style="transition:transform .2s,box-shadow .2s;cursor:pointer"
+           onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(0,0,0,.12)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div class="stat-icon green" style="width:54px;height:54px;font-size:24px;flex-shrink:0">
+          <i class="bi bi-bag-fill"></i>
+        </div>
+        <div class="flex-1">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--text)">Vendas</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px">Registrar vendas de insumos</div>
+        </div>
+        <i class="bi bi-chevron-right" style="color:var(--text-tertiary)"></i>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-sm-6">
+    <a href="{% url 'gastos' %}" class="text-decoration-none">
+      <div class="card-custom p-3 d-flex align-items-center gap-3" style="transition:transform .2s,box-shadow .2s;cursor:pointer"
+           onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(0,0,0,.12)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div class="stat-icon red" style="width:54px;height:54px;font-size:24px;flex-shrink:0">
+          <i class="bi bi-receipt"></i>
+        </div>
+        <div class="flex-1">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--text)">Gastos</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px">Controlar despesas e custos</div>
+        </div>
+        <i class="bi bi-chevron-right" style="color:var(--text-tertiary)"></i>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-sm-6">
+    <a href="{% url 'relatorios' %}" class="text-decoration-none">
+      <div class="card-custom p-3 d-flex align-items-center gap-3" style="transition:transform .2s,box-shadow .2s;cursor:pointer"
+           onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(0,0,0,.12)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div class="stat-icon yellow" style="width:54px;height:54px;font-size:24px;flex-shrink:0">
+          <i class="bi bi-bar-chart-fill"></i>
+        </div>
+        <div class="flex-1">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--text)">Relatórios</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px">Gerar relatórios por período</div>
+        </div>
+        <i class="bi bi-chevron-right" style="color:var(--text-tertiary)"></i>
+      </div>
+    </a>
+  </div>
+</div>
+{% endblock %}

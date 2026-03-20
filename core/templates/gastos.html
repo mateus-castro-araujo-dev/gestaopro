@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block title %}Gastos — GestãoPro{% endblock %}
+{% block topbar_title %}Gastos{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">Gastos</h1>
+    <p class="page-subtitle">Controle suas despesas e custos</p>
+  </div>
+  <button class="btn-primary-custom" onclick="openModal('modalGasto')">
+    <i class="bi bi-plus-lg"></i> Novo Gasto
+  </button>
+</div>
+
+<!-- Cards de gastos -->
+<div class="row g-3" id="gastosGrid">
+  {% for g in gastos %}
+  <div class="col-12 col-sm-6 col-lg-4" id="card-gasto-{{ g.id }}">
+    <div class="card-custom h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.descricao }}</div>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">{{ g.data_hora|date:"d/m/Y H:i" }}</div>
+          </div>
+          <button class="btn-danger-custom ms-2" onclick="excluirGasto({{ g.id }})">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+        <div class="d-flex align-items-center justify-content-between">
+          <span class="badge-custom badge-{{ g.categoria }}">{{ g.get_categoria_display }}</span>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:var(--danger)">
+            R$ {{ g.valor|floatformat:2 }}
+          </div>
+        </div>
+        {% if g.observacao %}
+        <div style="margin-top:10px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:10px">
+          {{ g.observacao }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="empty-state">
+      <i class="bi bi-receipt"></i>
+      <p>Nenhum gasto cadastrado ainda.<br>Clique em <strong>Novo Gasto</strong> para começar.</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal-custom" id="modalGasto">
+  <div class="modal-backdrop-custom" onclick="closeModal('modalGasto')"></div>
+  <div class="modal-box">
+    <span class="modal-handle"></span>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="modal-title-custom mb-0">Novo Gasto</h2>
+      <button onclick="closeModal('modalGasto')" style="border:none;background:var(--bg);border-radius:8px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-x-lg" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div id="gastoAlert"></div>
+
+    <div class="form-group-custom">
+      <label class="form-label-custom">Descrição *</label>
+      <input type="text" id="gastoDesc" class="form-control-custom" placeholder="Ex: Conta de energia elétrica">
+    </div>
+    <div class="row g-3">
+      <div class="col-6">
+        <div class="form-group-custom">
+          <label class="form-label-custom">Valor (R$) *</label>
+          <input type="number" id="gastoValor" class="form-control-custom" placeholder="0,00" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="form-group-custom">
+          <label class="form-label-custom">Categoria</label>
+          <select id="gastoCat" class="form-control-custom">
+            <option value="operacional">Operacional</option>
+            <option value="material">Material</option>
+            <option value="servico">Serviço</option>
+            <option value="pessoal">Pessoal</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-group-custom">
+      <label class="form-label-custom">Observação</label>
+      <textarea id="gastoObs" class="form-control-custom" rows="2" placeholder="Detalhes opcionais..." style="resize:none"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:20px">
+      <i class="bi bi-clock"></i> Data e horário são registrados automaticamente
+    </div>
+    <button class="btn-primary-custom w-100" onclick="salvarGasto()" id="btnSalvarGasto">
+      <i class="bi bi-check-lg"></i> Salvar Gasto
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = getCsrf();
+
+const BADGES = {
+  operacional: 'badge-operacional',
+  material: 'badge-material',
+  servico: 'badge-servico',
+  pessoal: 'badge-pessoal',
+  outro: 'badge-outro',
+};
+
+const LABELS = {
+  operacional: 'Operacional',
+  material: 'Material',
+  servico: 'Serviço',
+  pessoal: 'Pessoal',
+  outro: 'Outro',
+};
+
+async function salvarGasto() {
+  const desc = document.getElementById('gastoDesc').value.trim();
+  const valor = document.getElementById('gastoValor').value;
+  const cat = document.getElementById('gastoCat').value;
+  const obs = document.getElementById('gastoObs').value.trim();
+  const alertEl = document.getElementById('gastoAlert');
+
+  if (!desc || !valor) {
+    alertEl.innerHTML = '<div class="alert-custom alert-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> Preencha todos os campos obrigatórios.</div>';
+    return;
+  }
+  alertEl.innerHTML = '';
+
+  const btn = document.getElementById('btnSalvarGasto');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass"></i> Salvando...';
+
+  try {
+    const res = await fetch('{% url "cadastrar_gasto" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ descricao: desc, valor: parseFloat(valor), categoria: cat, observacao: obs }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      const g = data.gasto;
+      const obsHtml = g.observacao
+        ? `<div style="margin-top:10px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:10px">${g.observacao}</div>`
+        : '';
+
+      const card = `
+        <div class="col-12 col-sm-6 col-lg-4" id="card-gasto-${g.id}">
+          <div class="card-custom h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div style="flex:1;min-width:0">
+                  <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g.descricao}</div>
+                  <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">${g.data_hora}</div>
+                </div>
+                <button class="btn-danger-custom ms-2" onclick="excluirGasto(${g.id})">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="badge-custom ${BADGES[g.categoria_raw]}">${g.categoria}</span>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:var(--danger)">
+                  ${fmtBRL(g.valor)}
+                </div>
+              </div>
+              ${obsHtml}
+            </div>
+          </div>
+        </div>`;
+
+      const grid = document.getElementById('gastosGrid');
+      const empty = grid.querySelector('.empty-state')?.closest('.col-12');
+      if (empty) empty.remove();
+      grid.insertAdjacentHTML('afterbegin', card);
+
+      document.getElementById('gastoDesc').value = '';
+      document.getElementById('gastoValor').value = '';
+      document.getElementById('gastoObs').value = '';
+      closeModal('modalGasto');
+      showToast('Gasto cadastrado com sucesso!');
+    } else {
+      alertEl.innerHTML = `<div class="alert-custom alert-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> ${data.error}</div>`;
+    }
+  } catch(e) {
+    alertEl.innerHTML = '<div class="alert-custom alert-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> Erro ao salvar. Tente novamente.</div>';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-check-lg"></i> Salvar Gasto';
+}
+
+async function excluirGasto(id) {
+  if (!confirm('Deseja remover este gasto?')) return;
+  const res = await fetch(`/gastos/${id}/excluir/`, {
+    method: 'POST', headers: { 'X-CSRFToken': CSRF }
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById(`card-gasto-${id}`)?.remove();
+    showToast('Gasto removido.');
+    if (!document.querySelector('[id^="card-gasto-"]')) {
+      document.getElementById('gastosGrid').innerHTML = `
+        <div class="col-12">
+          <div class="empty-state">
+            <i class="bi bi-receipt"></i>
+            <p>Nenhum gasto cadastrado ainda.<br>Clique em <strong>Novo Gasto</strong> para começar.</p>
+          </div>
+        </div>`;
+    }
+  }
+}
+</script>
+{% endblock %}

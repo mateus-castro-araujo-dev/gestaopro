@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}Vendas — GestãoPro{% endblock %}
+{% block topbar_title %}Vendas{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">Vendas</h1>
+    <p class="page-subtitle">Registre suas vendas de insumos</p>
+  </div>
+  <button class="btn-primary-custom" onclick="openModal('modalVenda')"
+    {% if not insumos %}disabled title="Cadastre insumos primeiro"{% endif %}>
+    <i class="bi bi-plus-lg"></i> Nova Venda
+  </button>
+</div>
+
+
+<!-- Tabela de vendas -->
+<div class="card-custom">
+  <div class="card-header">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700">Histórico de Vendas</span>
+    <span style="font-size:13px;color:var(--text-tertiary)" id="vendaCount">{{ vendas|length }} registro(s)</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="table-custom" id="tabelaVendas">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Insumo</th>
+          <th>Quantidade</th>
+          <th>Preço unit.</th>
+          <th>Total</th>
+          <th>Cliente</th>
+          <th>Data/Hora</th>
+        </tr>
+      </thead>
+      <tbody id="vendaBody">
+        {% for v in vendas %}
+        <tr>
+          <td style="color:var(--text-tertiary);font-size:12px">{{ forloop.counter }}</td>
+          <td><span style="font-weight:600">{{ v.insumo.nome }}</span></td>
+          <td>{{ v.quantidade_vendida }} {{ v.insumo.unidade }}</td>
+          <td>R$ {{ v.preco_venda|floatformat:2 }}</td>
+          <td style="font-weight:700;color:var(--success)">R$ {{ v.valor_total|floatformat:2 }}</td>
+          <td style="color:var(--text-secondary)">{{ v.cliente|default:"—" }}</td>
+          <td style="color:var(--text-secondary);font-size:13px">{{ v.data_hora|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr id="emptyRow">
+          <td colspan="7">
+            <div class="empty-state"><i class="bi bi-bag"></i><p>Nenhuma venda registrada ainda.</p></div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-custom" id="modalVenda">
+  <div class="modal-backdrop-custom" onclick="closeModal('modalVenda')"></div>
+  <div class="modal-box">
+    <span class="modal-handle"></span>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="modal-title-custom mb-0">Nova Venda</h2>
+      <button onclick="closeModal('modalVenda')" style="border:none;background:var(--bg);border-radius:8px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-x-lg" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div id="vendaAlert"></div>
+
+    <div class="form-group-custom">
+      <label class="form-label-custom">Insumo *</label>
+      <select id="vendaInsumo" class="form-control-custom" onchange="carregarPreco()">
+        <option value="">Selecione um insumo...</option>
+        {% for i in insumos %}
+        <option value="{{ i.id }}" data-preco="{{ i.preco }}" data-qtd="{{ i.quantidade }}" data-unidade="{{ i.unidade }}">
+          {{ i.nome }} — {{ i.quantidade }} {{ i.unidade }} disponíveis
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="insumoInfo" style="display:none;background:var(--primary-light);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px">
+      <div style="font-weight:600;color:var(--primary)" id="infoTexto"></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-6">
+        <div class="form-group-custom">
+          <label class="form-label-custom">Quantidade *</label>
+          <input type="number" id="vendaQtd" class="form-control-custom" placeholder="0" step="0.01" min="0.01" oninput="calcTotal()">
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="form-group-custom">
+          <label class="form-label-custom">Preço de venda (R$) *</label>
+          <input type="number" id="vendaPreco" class="form-control-custom" placeholder="0,00" step="0.01" min="0" oninput="calcTotal()">
+        </div>
+      </div>
+    </div>
+
+    <div id="totalPreview" style="display:none;background:var(--bg);border-radius:10px;padding:12px;margin-bottom:16px;text-align:center">
+      <div style="font-size:12px;color:var(--text-secondary);font-weight:600">TOTAL DA VENDA</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--success)" id="totalValor">R$ 0,00</div>
+    </div>
+
+    <div class="form-group-custom">
+      <label class="form-label-custom">Cliente</label>
+      <input type="text" id="vendaCliente" class="form-control-custom" placeholder="Nome do cliente (opcional)">
+    </div>
+    <div class="form-group-custom">
+      <label class="form-label-custom">Observação</label>
+      <textarea id="vendaObs" class="form-control-custom" placeholder="Observações opcionais..." rows="2" style="resize:none"></textarea>
+    </div>
+    <button class="btn-primary-custom w-100" onclick="salvarVenda()" id="btnSalvarVenda">
+      <i class="bi bi-check-lg"></i> Registrar Venda
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = getCsrf();
+let vendaCount = {{ vendas|length }};
+let rowCount = vendaCount;
+
+function carregarPreco() {
+  const sel = document.getElementById('vendaInsumo');
+  const opt = sel.options[sel.selectedIndex];
+  const info = document.getElementById('insumoInfo');
+  const precoInput = document.getElementById('vendaPreco');
+
+  if (sel.value) {
+    const preco = opt.dataset.preco;
+    const qtd = opt.dataset.qtd;
+    const unidade = opt.dataset.unidade;
+    precoInput.value = parseFloat(preco).toFixed(2);
+    document.getElementById('infoTexto').textContent = `Estoque disponível: ${qtd} ${unidade} · Preço sugerido: ${fmtBRL(preco)}`;
+    info.style.display = 'block';
+    calcTotal();
+  } else {
+    info.style.display = 'none';
+    precoInput.value = '';
+    document.getElementById('totalPreview').style.display = 'none';
+  }
+}
+
+function calcTotal() {
+  const qtd = parseFloat(document.getElementById('vendaQtd').value) || 0;
+  const preco = parseFloat(document.getElementById('vendaPreco').value) || 0;
+  const total = qtd * preco;
+  const prev = document.getElementById('totalPreview');
+  if (qtd > 0 && preco > 0) {
+    document.getElementById('totalValor').textContent = fmtBRL(total);
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+async function salvarVenda() {
+  const insumoId = document.getElementById('vendaInsumo').value;
+  const qtd = document.getElementById('vendaQtd').value;
+  const preco = document.getElementById('vendaPreco').value;
+  const cliente = document.getElementById('vendaCliente').value.trim();
+  const obs = document.getElementById('vendaObs').value.trim();
+  const alertEl = document.getElementById('vendaAlert');
+
+  if (!insumoId || !qtd || !preco) {
+    alertEl.innerHTML = '<div class="alert-custom alert-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> Preencha todos os campos obrigatórios.</div>';
+    return;
+  }
+  alertEl.innerHTML = '';
+
+  const btn = document.getElementById('btnSalvarVenda');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass"></i> Registrando...';
+
+  try {
+    const res = await fetch('{% url "cadastrar_venda" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ insumo_id: insumoId, quantidade: parseFloat(qtd), preco_venda: parseFloat(preco), cliente, observacao: obs }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      const v = data.venda;
+      rowCount++;
+
+      // Remove empty row
+      document.getElementById('emptyRow')?.remove();
+
+      // Update stock in select
+      const sel = document.getElementById('vendaInsumo');
+      for (let opt of sel.options) {
+        if (opt.value == insumoId) {
+          opt.dataset.qtd = v.estoque_restante;
+          const novaQtd = parseFloat(v.estoque_restante);
+          const unidade = v.unidade;
+          opt.textContent = `${v.insumo} — ${novaQtd} ${unidade} disponíveis`;
+          if (novaQtd <= 0) opt.disabled = true;
+          break;
+        }
+      }
+
+      // Add row
+      const tbody = document.getElementById('vendaBody');
+      tbody.insertAdjacentHTML('afterbegin', `
+        <tr>
+          <td style="color:var(--text-tertiary);font-size:12px">${rowCount}</td>
+          <td><span style="font-weight:600">${v.insumo}</span></td>
+          <td>${v.quantidade} ${v.unidade}</td>
+          <td>R$ ${v.preco_venda.toFixed(2).replace('.',',')}</td>
+          <td style="font-weight:700;color:var(--success)">${fmtBRL(v.valor_total)}</td>
+          <td style="color:var(--text-secondary)">${v.cliente || '—'}</td>
+          <td style="color:var(--text-secondary);font-size:13px">${v.data_hora}</td>
+        </tr>`);
+
+      vendaCount++;
+      document.getElementById('vendaCount').textContent = `${vendaCount} registro(s)`;
+
+      // Reset form
+      document.getElementById('vendaInsumo').value = '';
+      document.getElementById('vendaQtd').value = '';
+      document.getElementById('vendaPreco').value = '';
+      document.getElementById('vendaCliente').value = '';
+      document.getElementById('vendaObs').value = '';
+      document.getElementById('insumoInfo').style.display = 'none';
+      document.getElementById('totalPreview').style.display = 'none';
+      closeModal('modalVenda');
+      showToast('Venda registrada com sucesso!');
+    } else {
+      alertEl.innerHTML = `<div class="alert-custom alert-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> ${data.error}</div>`;
+    }
+  } catch(e) {
+    alertEl.innerHTML = '<div class="alert-custom alert-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> Erro ao registrar. Tente novamente.</div>';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-check-lg"></i> Registrar Venda';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios — GestãoPro{% endblock %}
+{% block topbar_title %}Relatórios{% endblock %}
+
+{% block extra_css %}
+<style>
+  .section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .table-report {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .table-report th {
+    background: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-report th:first-child { width: 40px; }
+
+  .table-report td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .table-report tr:last-child td { border-bottom: none; }
+
+  .table-report tr:hover td { background: var(--bg); }
+
+  .summary-pill {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pill-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-tertiary); }
+  .pill-value { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; }
+
+  @media print {
+    .sidebar, .topbar, .no-print { display: none !important; }
+    .main-wrapper { margin-left: 0 !important; }
+    .page-content { padding: 0 !important; }
+    .card-custom { box-shadow: none !important; border: 1px solid #ccc !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Relatórios</h1>
+  <p class="page-subtitle">Visualize e exporte dados por período</p>
+</div>
+
+<!-- Filtro de período -->
+<div class="card-custom mb-4 no-print">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-sm-4">
+        <label class="form-label-custom">Data inicial</label>
+        <input type="date" id="dataInicio" class="form-control-custom" value="{{ today }}">
+      </div>
+      <div class="col-12 col-sm-4">
+        <label class="form-label-custom">Data final</label>
+        <input type="date" id="dataFim" class="form-control-custom" value="{{ today }}">
+      </div>
+      <div class="col-12 col-sm-4">
+        <button class="btn-primary-custom w-100" onclick="gerarRelatorio()" id="btnGerar">
+          <i class="bi bi-search"></i> Gerar Relatório
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resultado -->
+<div id="resultado" style="display:none">
+
+  <!-- Resumo -->
+  <div class="mb-4">
+    <div class="section-title"><i class="bi bi-graph-up-arrow"></i> Resumo Financeiro</div>
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="summary-pill">
+          <div class="pill-label">Insumos (estoque)</div>
+          <div class="pill-value" style="color:var(--primary)" id="sumInsumos">R$ 0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="summary-pill">
+          <div class="pill-label">Total vendido</div>
+          <div class="pill-value" style="color:var(--success)" id="sumVendas">R$ 0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="summary-pill">
+          <div class="pill-label">Total gastos</div>
+          <div class="pill-value" style="color:var(--danger)" id="sumGastos">R$ 0</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="summary-pill">
+          <div class="pill-label">Resultado (venda - gasto)</div>
+          <div class="pill-value" id="sumLucro">R$ 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ações de exportação -->
+  <div class="d-flex gap-2 mb-4 no-print flex-wrap">
+    <button onclick="exportarCSV()" style="background:var(--success);color:white;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Exportar CSV
+    </button>
+    <button onclick="window.print()" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
+      <i class="bi bi-printer"></i> Imprimir
+    </button>
+  </div>
+
+  <!-- Tabela Insumos -->
+  <div class="card-custom mb-4">
+    <div class="card-header">
+      <div class="section-title mb-0"><i class="bi bi-box-seam-fill" style="color:var(--primary)"></i> Insumos</div>
+      <span style="font-size:13px;color:var(--text-tertiary)" id="countInsumos">0 registro(s)</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="table-report">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Preço Unit.</th>
+            <th>Quantidade</th>
+            <th>Unidade</th>
+            <th>Total</th>
+            <th>Data/Hora</th>
+          </tr>
+        </thead>
+        <tbody id="tbInsumos">
+          <tr><td colspan="7"><div class="empty-state" style="padding:30px"><i class="bi bi-box-seam"></i><p>Nenhum insumo no período</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tabela Vendas -->
+  <div class="card-custom mb-4">
+    <div class="card-header">
+      <div class="section-title mb-0"><i class="bi bi-bag-fill" style="color:var(--success)"></i> Vendas</div>
+      <span style="font-size:13px;color:var(--text-tertiary)" id="countVendas">0 registro(s)</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="table-report">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Insumo</th>
+            <th>Qtd Vendida</th>
+            <th>Preço Venda</th>
+            <th>Total</th>
+            <th>Cliente</th>
+            <th>Data/Hora</th>
+          </tr>
+        </thead>
+        <tbody id="tbVendas">
+          <tr><td colspan="7"><div class="empty-state" style="padding:30px"><i class="bi bi-bag"></i><p>Nenhuma venda no período</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tabela Gastos -->
+  <div class="card-custom mb-4">
+    <div class="card-header">
+      <div class="section-title mb-0"><i class="bi bi-receipt" style="color:var(--danger)"></i> Gastos</div>
+      <span style="font-size:13px;color:var(--text-tertiary)" id="countGastos">0 registro(s)</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="table-report">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Categoria</th>
+            <th>Data/Hora</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody id="tbGastos">
+          <tr><td colspan="6"><div class="empty-state" style="padding:30px"><i class="bi bi-receipt"></i><p>Nenhum gasto no período</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Estado inicial -->
+<div id="estadoInicial" style="text-align:center;padding:60px 20px;color:var(--text-tertiary)">
+  <i class="bi bi-bar-chart-line" style="font-size:56px;display:block;margin-bottom:16px;opacity:.4"></i>
+  <p style="font-size:15px;font-weight:500">Selecione um período e clique em <strong>Gerar Relatório</strong></p>
+  <p style="font-size:13px;margin-top:4px">para visualizar os dados de insumos, vendas e gastos</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set default dates
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('dataInicio').value = today;
+document.getElementById('dataFim').value = today;
+
+let lastInicio = '', lastFim = '';
+
+async function gerarRelatorio() {
+  const inicio = document.getElementById('dataInicio').value;
+  const fim = document.getElementById('dataFim').value;
+
+  if (!inicio || !fim) { showToast('Selecione o período completo.', 'error'); return; }
+  if (inicio > fim) { showToast('A data inicial deve ser anterior à final.', 'error'); return; }
+
+  lastInicio = inicio;
+  lastFim = fim;
+
+  const btn = document.getElementById('btnGerar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass"></i> Gerando...';
+
+  try {
+    const res = await fetch(`/relatorios/gerar/?data_inicio=${inicio}&data_fim=${fim}`);
+    const data = await res.json();
+
+    if (!data.success) { showToast('Erro ao gerar relatório.', 'error'); return; }
+
+    document.getElementById('estadoInicial').style.display = 'none';
+    document.getElementById('resultado').style.display = 'block';
+
+    // Resumo
+    const r = data.resumo;
+    document.getElementById('sumInsumos').textContent = fmtBRL(r.total_insumos);
+    document.getElementById('sumVendas').textContent = fmtBRL(r.total_vendas);
+    document.getElementById('sumGastos').textContent = fmtBRL(r.total_gastos);
+    const lucroEl = document.getElementById('sumLucro');
+    lucroEl.textContent = fmtBRL(r.lucro);
+    lucroEl.style.color = r.lucro >= 0 ? 'var(--success)' : 'var(--danger)';
+
+    // Insumos
+    document.getElementById('countInsumos').textContent = `${data.insumos.length} registro(s)`;
+    const tbI = document.getElementById('tbInsumos');
+    if (data.insumos.length === 0) {
+      tbI.innerHTML = '<tr><td colspan="7"><div class="empty-state" style="padding:30px"><i class="bi bi-box-seam"></i><p>Nenhum insumo no período</p></div></td></tr>';
+    } else {
+      tbI.innerHTML = data.insumos.map(i => `
+        <tr>
+          <td style="color:var(--text-tertiary);font-weight:700">${i.num}</td>
+          <td style="font-weight:600">${i.nome}</td>
+          <td>${fmtBRL(i.preco)}</td>
+          <td>${i.quantidade}</td>
+          <td style="color:var(--text-secondary)">${i.unidade}</td>
+          <td style="font-weight:700;color:var(--primary)">${fmtBRL(i.total)}</td>
+          <td style="color:var(--text-secondary);font-size:12px">${i.data_hora}</td>
+        </tr>`).join('');
+    }
+
+    // Vendas
+    document.getElementById('countVendas').textContent = `${data.vendas.length} registro(s)`;
+    const tbV = document.getElementById('tbVendas');
+    if (data.vendas.length === 0) {
+      tbV.innerHTML = '<tr><td colspan="7"><div class="empty-state" style="padding:30px"><i class="bi bi-bag"></i><p>Nenhuma venda no período</p></div></td></tr>';
+    } else {
+      tbV.innerHTML = data.vendas.map(v => `
+        <tr>
+          <td style="color:var(--text-tertiary);font-weight:700">${v.num}</td>
+          <td style="font-weight:600">${v.insumo}</td>
+          <td>${v.quantidade}</td>
+          <td>${fmtBRL(v.preco_venda)}</td>
+          <td style="font-weight:700;color:var(--success)">${fmtBRL(v.total)}</td>
+          <td style="color:var(--text-secondary)">${v.cliente || '—'}</td>
+          <td style="color:var(--text-secondary);font-size:12px">${v.data_hora}</td>
+        </tr>`).join('');
+    }
+
+    // Gastos
+    document.getElementById('countGastos').textContent = `${data.gastos.length} registro(s)`;
+    const tbG = document.getElementById('tbGastos');
+    if (data.gastos.length === 0) {
+      tbG.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:30px"><i class="bi bi-receipt"></i><p>Nenhum gasto no período</p></div></td></tr>';
+    } else {
+      tbG.innerHTML = data.gastos.map(g => `
+        <tr>
+          <td style="color:var(--text-tertiary);font-weight:700">${g.num}</td>
+          <td style="font-weight:600">${g.descricao}</td>
+          <td style="font-weight:700;color:var(--danger)">${fmtBRL(g.valor)}</td>
+          <td><span class="badge-custom badge-${g.categoria}">${g.categoria.charAt(0).toUpperCase() + g.categoria.slice(1)}</span></td>
+          <td style="color:var(--text-secondary);font-size:12px">${g.data_hora}</td>
+          <td style="color:var(--text-secondary)">${g.observacao || '—'}</td>
+        </tr>`).join('');
+    }
+
+    showToast('Relatório gerado com sucesso!');
+  } catch(e) {
+    showToast('Erro ao gerar relatório.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-search"></i> Gerar Relatório';
+}
+
+function exportarCSV() {
+  if (!lastInicio || !lastFim) {
+    showToast('Gere o relatório primeiro.', 'error');
+    return;
+  }
+  window.location.href = `/relatorios/exportar-csv/?data_inicio=${lastInicio}&data_fim=${lastFim}`;
+}
+</script>
+{% endblock %}
