@@ -3,12 +3,9 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-sistema-gestao-2024-mude-em-producao'
-
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
-
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-mude-em-producao-2024')
+DEBUG = 'True'
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'fibreless-disparagingly-aubri.ngrok-free.dev']
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -31,23 +28,18 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'config.wsgi.application'
+TEMPLATES = [{
+    'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    'DIRS': [BASE_DIR / 'templates'],
+    'APP_DIRS': True,
+    'OPTIONS': {'context_processors': [
+        'django.template.context_processors.debug',
+        'django.template.context_processors.request',
+        'django.contrib.auth.context_processors.auth',
+        'django.contrib.messages.context_processors.messages',
+        'core.context_processors.token_context',
+    ]},
+}]
 
 DATABASES = {
     'default': {
@@ -63,5 +55,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://projetogestao.pythonanywhere.com',
+]
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False

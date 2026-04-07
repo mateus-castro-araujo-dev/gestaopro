@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GestãoPro — Sistema de Gestão</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0A84FF; --success: #30D158; --danger: #FF453A;
+      --bg: #F2F2F7; --surface: #fff; --border: #E5E5EA;
+      --text: #1C1C1E; --text-secondary: #6C6C70;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%);
+      color: white; padding: 60px 20px; text-align: center;
+    }
+    .hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(28px, 5vw, 48px); font-weight: 700; margin-bottom: 12px; }
+    .hero p { font-size: 16px; opacity: .85; max-width: 500px; margin: 0 auto 32px; }
+
+    .btn-assinar {
+      background: white; color: var(--primary); border: none;
+      padding: 16px 36px; border-radius: 14px; font-size: 17px;
+      font-weight: 700; font-family: inherit; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2); transition: transform .2s;
+    }
+    .btn-assinar:hover { transform: translateY(-2px); }
+
+    .preco-badge {
+      display: inline-block; background: rgba(255,255,255,.2);
+      border-radius: 100px; padding: 6px 18px; font-size: 14px;
+      margin-bottom: 20px; font-weight: 600;
+    }
+
+    /* PREVIEW */
+    .preview-section { padding: 40px 20px; max-width: 900px; margin: 0 auto; }
+    .preview-label {
+      text-align: center; font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-secondary); margin-bottom: 20px;
+    }
+
+    .preview-card {
+      background: var(--surface); border-radius: 18px;
+      border: 1px solid var(--border); padding: 24px;
+      box-shadow: 0 2px 20px rgba(0,0,0,.07); position: relative;
+      filter: blur(2px); pointer-events: none; user-select: none;
+    }
+    .preview-overlay {
+      position: absolute; inset: 0; border-radius: 18px;
+      background: rgba(255,255,255,.5);
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .preview-lock {
+      background: var(--primary); color: white; border-radius: 12px;
+      padding: 10px 20px; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .preview-wrapper { position: relative; margin-bottom: 16px; }
+
+    /* FEATURES */
+    .features { padding: 40px 20px; max-width: 700px; margin: 0 auto; }
+    .feature-item { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
+    .feature-icon { width: 40px; height: 40px; border-radius: 10px; background: #E8F2FF; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .feature-title { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+    .feature-desc { font-size: 13px; color: var(--text-secondary); }
+
+    /* CTA */
+    .cta-section {
+      background: linear-gradient(135deg, #1C1C1E, #2C2C2E);
+      color: white; padding: 48px 20px; text-align: center;
+    }
+    .cta-section h2 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+    .cta-section p { opacity: .7; margin-bottom: 28px; font-size: 15px; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      backdrop-filter: blur(6px); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: white; border-radius: 24px; padding: 32px 28px;
+      width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;
+      transform: scale(.95); transition: transform .3s;
+    }
+    .modal-overlay.show .modal-box { transform: scale(1); }
+
+    .modal-step { display: none; }
+    .modal-step.active { display: block; }
+
+    .form-label-custom { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+    .form-control-custom { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 15px; color: var(--text); outline: none; transition: border-color .15s; margin-bottom: 14px; }
+    .form-control-custom:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,132,255,.1); }
+
+    .btn-primary-full { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 14px; width: 100%; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all .15s; }
+    .btn-primary-full:hover { background: #0060CC; }
+    .btn-primary-full:disabled { opacity: .6; cursor: not-allowed; }
+
+    .qr-container { text-align: center; }
+    .qr-container img { width: 200px; height: 200px; border-radius: 12px; border: 2px solid var(--border); }
+
+    .pix-copia { background: var(--bg); border-radius: 10px; padding: 12px; font-size: 11px; word-break: break-all; color: var(--text-secondary); margin: 12px 0; max-height: 80px; overflow-y: auto; }
+
+    .btn-copy { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; margin: 0 auto 16px; }
+
+    .token-box { background: linear-gradient(135deg, #E8F2FF, #F0EEFF); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 20px; }
+    .token-url { font-family: monospace; font-size: 12px; word-break: break-all; color: var(--primary); font-weight: 600; background: white; border-radius: 8px; padding: 10px; margin-top: 8px; }
+
+    .alert-danger { background: #FFF0EF; color: #C0392B; border-radius: 10px; padding: 12px; font-size: 13px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-aguardando { background: #FFFBE6; color: #B8860B; border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .dot-pulse { width: 8px; height: 8px; border-radius: 50%; background: #F4A800; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="preco-badge">💚 R$ 20/mês — Cancele quando quiser</div>
+  <h1>GestãoPro</h1>
+  <p>Sistema completo de gestão de insumos, vendas, gastos e relatórios. Simples, rápido e acessível.</p>
+  <button class="btn-assinar" onclick="abrirModal()">
+    Começar agora — R$ 20/mês
+  </button>
+</section>
+
+<!-- PREVIEW -->
+<section class="preview-section">
+  <div class="preview-label"><i class="bi bi-eye"></i> Prévia do sistema</div>
+
+  <div class="preview-wrapper">
+    <div class="preview-card">
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px;background:#E8F2FF;border-radius:12px;padding:16px">
+          <div style="font-size:11px;color:#6C6C70;font-weight:700;text-transform:uppercase">Insumos</div>
+          <div style="font-size:24px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#0A84FF">12</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:#E8FAF0;border-radius:12px;padding:16px">
+          <div style="font-size:11px;color:#6C6C70;font-weight:700;text-transform:uppercase">Vendas hoje</div>
+          <div style="font-size:24px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#30D158">8</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:#E8FAF0;border-radius:12px;padding:16px">
+          <div style="font-size:11px;color:#6C6C70;font-weight:700;text-transform:uppercase">Faturado</div>
+          <div style="font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#30D158">R$ 1.240</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:#FFF0EF;border-radius:12px;padding:16px">
+          <div style="font-size:11px;color:#6C6C70;font-weight:700;text-transform:uppercase">Gastos</div>
+          <div style="font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:#FF453A">R$ 380</div>
+        </div>
+      </div>
+      <div style="background:#F2F2F7;border-radius:12px;padding:16px">
+        <div style="font-weight:700;margin-bottom:10px;font-size:14px">Últimas vendas</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #E5E5EA;font-size:13px"><span>Farinha de trigo</span><span style="color:#30D158;font-weight:700">R$ 45,00</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #E5E5EA;font-size:13px"><span>Açúcar refinado</span><span style="color:#30D158;font-weight:700">R$ 28,50</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span>Óleo de soja</span><span style="color:#30D158;font-weight:700">R$ 62,00</span></div>
+      </div>
+    </div>
+    <div class="preview-overlay">
+      <div class="preview-lock"><i class="bi bi-lock-fill"></i> Assine para acessar</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="feature-item">
+    <div class="feature-icon"><i class="bi bi-box-seam-fill"></i></div>
+    <div><div class="feature-title">Controle de Insumos</div><div class="feature-desc">Cadastre insumos com preço de custo, preço de venda e veja a margem automaticamente.</div></div>
+  </div>
+  <div class="feature-item">
+    <div class="feature-icon" style="background:#E8FAF0;color:#30D158"><i class="bi bi-bag-fill"></i></div>
+    <div><div class="feature-title">Registro de Vendas</div><div class="feature-desc">Registre vendas, aplique desconto em %, escolha a forma de pagamento e controle o estoque.</div></div>
+  </div>
+  <div class="feature-item">
+    <div class="feature-icon" style="background:#FFF0EF;color:#FF453A"><i class="bi bi-receipt"></i></div>
+    <div><div class="feature-title">Controle de Gastos</div><div class="feature-desc">Cadastre despesas por categoria e mantenha o financeiro organizado.</div></div>
+  </div>
+  <div class="feature-item">
+    <div class="feature-icon" style="background:#FFFBE6;color:#F4A800"><i class="bi bi-bar-chart-fill"></i></div>
+    <div><div class="feature-title">Relatórios por Período</div><div class="feature-desc">Gere relatórios filtrando por data. Exporte em CSV ou imprima diretamente.</div></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Pronto para começar?</h2>
+  <p>Acesso completo por apenas R$ 20/mês. Pague via PIX e acesse na hora.</p>
+  <button class="btn-assinar" onclick="abrirModal()">
+    <i class="bi bi-lightning-fill"></i> Assinar agora — R$ 20/mês
+  </button>
+</section>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+
+    <!-- Step 1: Formulário -->
+    <div class="modal-step active" id="step1">
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;margin-bottom:4px">Criar sua conta</h3>
+      <p style="color:#6C6C70;font-size:13px;margin-bottom:20px">Preencha os dados e pague via PIX para acessar</p>
+      <div id="step1Alert"></div>
+      <label class="form-label-custom">Seu nome *</label>
+      <input type="text" id="regNome" class="form-control-custom" placeholder="João Silva">
+      <label class="form-label-custom">E-mail *</label>
+      <input type="email" id="regEmail" class="form-control-custom" placeholder="joao@email.com">
+      <label class="form-label-custom">CPF (para o PIX) *</label>
+      <input type="text" id="regCpf" class="form-control-custom" placeholder="000.000.000-00" maxlength="14">
+      <button class="btn-primary-full" onclick="registrar()" id="btnRegistrar">
+        Gerar PIX — R$ 20,00
+      </button>
+      <button onclick="fecharModal()" style="background:none;border:none;width:100%;text-align:center;margin-top:12px;color:#6C6C70;cursor:pointer;font-size:13px">Cancelar</button>
+    </div>
+
+    <!-- Step 2: QR Code PIX -->
+    <div class="modal-step" id="step2">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="width:52px;height:52px;background:#E8FAF0;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px">📱</div>
+        <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;margin-bottom:4px">Pague via PIX</h3>
+        <p style="color:#6C6C70;font-size:13px">Escaneie o QR Code ou copie o código PIX</p>
+      </div>
+      <div class="status-aguardando">
+        <div class="dot-pulse"></div>
+        Aguardando pagamento...
+      </div>
+      <div class="qr-container">
+        <img id="qrImg" src="" alt="QR Code PIX">
+      </div>
+      <div class="pix-copia" id="pixCopiaTexto"></div>
+      <button class="btn-copy" onclick="copiarPix()">
+        <i class="bi bi-clipboard"></i> Copiar código PIX
+      </button>
+      <p style="font-size:12px;color:#6C6C70;text-align:center">O acesso é liberado automaticamente após o pagamento</p>
+    </div>
+
+    <!-- Step 3: Sucesso -->
+    <div class="modal-step" id="step3">
+      <div style="text-align:center">
+        <div style="font-size:60px;margin-bottom:12px">🎉</div>
+        <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;margin-bottom:8px">Pagamento confirmado!</h3>
+        <p style="color:#6C6C70;font-size:14px;margin-bottom:24px">Seu acesso foi liberado por 30 dias. Salve sua URL de acesso:</p>
+        <div class="token-box">
+          <div style="font-size:12px;font-weight:700;color:#6C6C70;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Sua URL exclusiva</div>
+          <div class="token-url" id="tokenUrl"></div>
+        </div>
+        <button class="btn-copy" onclick="copiarUrl()"><i class="bi bi-clipboard"></i> Copiar URL</button>
+        <button class="btn-primary-full" onclick="acessarSistema()">
+          <i class="bi bi-arrow-right-circle-fill"></i> Acessar o sistema
+        </button>
+        <p style="font-size:11px;color:#AEAEB2;margin-top:12px">⚠️ Guarde esta URL. Ela é seu acesso ao sistema.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let clienteToken = '';
+let pixCopiaColaTexto = '';
+let pollingInterval = null;
+
+function abrirModal() {
+  document.getElementById('modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharModal() {
+  document.getElementById('modal').classList.remove('show');
+  document.body.style.overflow = '';
+  if (pollingInterval) clearInterval(pollingInterval);
+}
+
+function irStep(n) {
+  document.querySelectorAll('.modal-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+}
+
+async function registrar() {
+  const nome = document.getElementById('regNome').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const cpf = document.getElementById('regCpf').value.trim();
+  const alertEl = document.getElementById('step1Alert');
+
+  if (!nome || !email || !cpf) {
+    alertEl.innerHTML = '<div class="alert-danger"><i class="bi bi-exclamation-circle-fill"></i> Preencha todos os campos.</div>';
+    return;
+  }
+  alertEl.innerHTML = '';
+
+  const btn = document.getElementById('btnRegistrar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Gerando PIX...';
+
+  try {
+    const res = await fetch('/registrar/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body: JSON.stringify({ nome, email, cpf }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      clienteToken = data.token;
+      pixCopiaColaTexto = data.pix_copia_cola;
+
+      // Monta QR Code
+    if (data.qr_code_base64) {
+    // Remove possíveis espaços ou quebras de linha que o MP pode enviar
+        const cleanBase64 = data.qr_code_base64.replace(/\s/g, '');
+        document.getElementById('qrImg').src = 'data:image/png;base64,' + cleanBase64;
+    }
+      document.getElementById('pixCopiaTexto').textContent = data.pix_copia_cola;
+
+      irStep(2);
+      iniciarPolling();
+    } else {
+      alertEl.innerHTML = `<div class="alert-danger"><i class="bi bi-exclamation-circle-fill"></i> ${data.error}</div>`;
+    }
+  } catch(e) {
+    alertEl.innerHTML = '<div class="alert-danger"><i class="bi bi-exclamation-circle-fill"></i> Erro ao gerar PIX. Tente novamente.</div>';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Gerar PIX — R$ 20,00';
+}
+
+function iniciarPolling() {
+  pollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/verificar/${clienteToken}/`);
+      const data = await res.json();
+      if (data.pago) {
+        clearInterval(pollingInterval);
+        const url = `${window.location.origin}/acesso/${clienteToken}/`;
+        document.getElementById('tokenUrl').textContent = url;
+        irStep(3);
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+function copiarPix() {
+  navigator.clipboard.writeText(pixCopiaColaTexto).then(() => {
+    showToastSimple('Código PIX copiado!');
+  });
+}
+
+function copiarUrl() {
+  const url = `${window.location.origin}/acesso/${clienteToken}/`;
+  navigator.clipboard.writeText(url).then(() => {
+    showToastSimple('URL copiada!');
+  });
+}
+
+function acessarSistema() {
+  window.location.href = `/acesso/${clienteToken}/`;
+}
+
+function getCsrf() {
+  return document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+function showToastSimple(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;right:16px;background:#1C1C1E;color:white;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:500;z-index:9999;font-family:inherit';
+  t.textContent = '✓ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// Formata CPF
+document.getElementById('regCpf')?.addEventListener('input', function(e) {
+  let v = e.target.value.replace(/\D/g, '');
+  if (v.length <= 11) {
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+  e.target.value = v;
+});
+</script>
+</body>
+</html>
